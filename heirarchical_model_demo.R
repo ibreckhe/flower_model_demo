@@ -7,6 +7,8 @@
 library(ggplot2)
 library(dplyr)
 library(rstanarm)
+
+##Set working directory (replace with the correct path for your machine)
 setwd("~/code/PhenologyPostdoc")
 
 ##Brings in data.
