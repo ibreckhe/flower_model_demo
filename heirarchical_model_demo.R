@@ -11,6 +11,10 @@ library(rstanarm)
 ##Set working directory (replace with the correct path for your machine)
 setwd("~/code/PhenologyPostdoc")
 
+##Logit and inverse logit functions.
+inv_logit <- function(x){exp(x)/(1+exp(x))}
+logit <- function(x){log(x/(1-x))}
+
 ##Brings in data.
 fdat <- read.csv("./data/Flickr_photo_demodata.csv")
 fdat$gap_lc_code <- as.factor(fdat$gap_lc_code)
@@ -19,14 +23,17 @@ fdat$gap_lc_code <- as.factor(fdat$gap_lc_code)
 fdat_sum <- summary(fdat)
 fdat_sum
 
-####Question 1: Do all sites contain enough photos of flowers to be useful? Stated more precisely, are
-####there any sites where the proportion of flower photos is less than 10%? If so, we might want to
-####drop those sites from the study.
+####Question 1: Do all sites contain enough photos of flowers to be useful? 
+####Stated more precisely, are there any sites where the proportion of 
+####flower photos is less than 10%? If so, we might want to drop those 
+####sites from the study.
 summary(fdat$site)
 
 ##Fits a model with an estimate for each site (no pooling).
 fdat$flwr_binary <- as.numeric(fdat$has_flower=="Y")
-flwr_prob_mod <- stan_glm(flwr_binary~site,family=binomial(link="logit"),data=fdat,cores=4)
+flwr_prob_mod <- stan_glm(flwr_binary~site,
+                          family=binomial(link="logit"),
+                          data=fdat,cores=4)
 summary(flwr_prob_mod)
 plot(flwr_prob_mod)
 
@@ -55,21 +62,24 @@ fig1
 
 ##Check your understanding:
 
-#1. Are there any sites where we are extremely confident (p>0.975) that 
-#   the proportion of flowers is less than 10%? 
+#1.Are there any sites where we are extremely 
+#  confident (p>0.975) that the proportion of flowers 
+#  is less than 10%? 
 
-#2. Even though all the sample sizes are identical, there is some variation
-#   in how wide the uncertainty intervals are. Additionally, some of these intervals
+#2. Even though all the sample sizes are identical, 
+#   there is some variation in how wide the uncertainty 
+#   intervals are. Additionally, some of these intervals
 #   are asymmetric. Why is this the case?
 
 #Independent Problem 1: This is a small sample of a very large
-#dataset consisting of 476334 photos. Calculate a best estimate and 95% uncertainty intervals
-#for the total number of flower photos in the dataset based on the sample of 3800 photos
+#dataset consisting of 476334 photos. Calculate a best estimate 
+#and 95% uncertainty intervals for the total number of flower photos 
+# in the dataset based on the sample of 3800 photos
 #we used here.
 
 
-####Question 2: Are there ecological patterns in the data? Is there significant variation 
-#### in how sensitive flower timing is to
+####Question 2: Are there ecological patterns in the data? 
+#### Is there significant variation in how sensitive flower timing is to
 #### climate across sites? If so, how much?
 
 fdat_f <- subset(fdat,flwr_binary==1)
@@ -89,7 +99,8 @@ fdat_f$site <- factor(fdat_f$site,levels = sites,
 ##Plots independent fits with no pooling.
 fig2 <- ggplot(fdat_f)+
           geom_point(aes(x=spring_t_ct,y=datetaken_doy,group=site))+
-          geom_smooth(aes(x=spring_t_ct,y=datetaken_doy,group=site),method="lm",se=FALSE)+
+          geom_smooth(aes(x=spring_t_ct,y=datetaken_doy,group=site),
+                      method="lm",se=FALSE)+
           facet_wrap(facets=~site)+
           theme_bw()
 fig2
@@ -97,7 +108,8 @@ fig2
 ##Estimates these fits independently.
 sites <- levels(fdat_f$site)
 nsites <- length(sites)
-nopool_est <- data.frame(site=factor(levels(fdat_f$site),levels=levels(fdat_f$site)),
+nopool_est <- data.frame(site=factor(levels(fdat_f$site),
+                                     levels=levels(fdat_f$site)),
                          sl_med = rep(NA,nsites),
                          sl_upr_90 = rep(NA,nsites),
                          sl_lwr_10 = rep(NA,nsites),
@@ -132,17 +144,20 @@ fig3 <- ggplot(nopool_est)+
 fig3
 
 ###Sensitivities with partial pooling.
-ppool_est <- data.frame(site=factor(levels(fdat_f$site),levels=levels(fdat_f$site)),
+ppool_est <- data.frame(site=factor(levels(fdat_f$site),
+                                    levels=levels(fdat_f$site)),
                          sl_med = rep(NA,nsites),
                          sl_upr_90 = rep(NA,nsites),
                          sl_lwr_10 = rep(NA,nsites),
                          int_med = rep(NA,nsites),
                          int_upr_90 = rep(NA,nsites),
                          int_lwr_10 = rep(NA,nsites))
-doy_mod_partialp1 <- stan_glmer(datetaken_doy~spring_t_ct + (1 | site),family=gaussian,
+doy_mod_partialp1 <- stan_glmer(datetaken_doy~spring_t_ct + (1 | site),
+                                family=gaussian,
                               prior=normal(),data=fdat_f,
                               cores=4)
-doy_mod_partialp2 <- stan_glmer(datetaken_doy~spring_t_ct + (spring_t_ct | site),family=gaussian,
+doy_mod_partialp2 <- stan_glmer(datetaken_doy~spring_t_ct + (spring_t_ct | site),
+                                family=gaussian,
                                 prior=normal(),data=fdat_f,
                                 cores=4)
 p2_samples <- tbl_df(as.data.frame(doy_mod_partialp2))
@@ -221,18 +236,21 @@ fig5
 
 ##Check your understanding:
 
-#3. Why is there so much less variation in the climate sensitivity of different sites in the
-#partial pooling example compared to the no pooling example? How might this change if we had
-#data for all 470000 photos? What if the linear relationships for each group were very strong?
+# 3. Why is there so much less variation in the climate sensitivity of 
+# different sites in the partial pooling example compared
+# to the no pooling example? How might this change if we had
+# data for all 470000 photos? What if the linear relationships 
+# for each group were very strong?
 
-#4. Why does there seem to be more uncertainty in the partial pooling estimate of 
-# the overall relationship between flowering time and spring temperature compared 
-# to the complete pooling estimate?
+# 4. Why does there seem to be more uncertainty in the partial pooling 
+# estimate of the overall relationship between flowering time
+# and spring temperature compared to the complete pooling estimate?
 
 ##Independent Problem 2:
-#Write down a mathematical description of the partial pooling model that is 
-#fit on line 143 "doy_mod_partialp2". Start with a statement about the probability 
-#distribution that the data is drawn from.
+#Write down a mathematical description of the partial pooling model 
+#that is fit on line 143 "doy_mod_partialp2".Start with a statement about 
+#the probability distribution that the data is drawn from.
+
 
 
 
