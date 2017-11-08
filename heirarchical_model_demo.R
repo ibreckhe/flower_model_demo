@@ -9,14 +9,14 @@ library(dplyr)
 library(rstanarm)
 
 ##Set working directory (replace with the correct path for your machine)
-setwd("~/code/PhenologyPostdoc")
+setwd("~/code/flower_model_demo")
 
 ##Logit and inverse logit functions.
 inv_logit <- function(x){exp(x)/(1+exp(x))}
 logit <- function(x){log(x/(1-x))}
 
 ##Brings in data.
-fdat <- read.csv("./data/Flickr_photo_demodata.csv")
+fdat <- read.csv("Flickr_photo_demodata.csv")
 fdat$gap_lc_code <- as.factor(fdat$gap_lc_code)
 
 ##Data summary.
